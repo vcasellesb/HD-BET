@@ -111,3 +111,6 @@ ENV/
 *.jpeg
 
 *.model
+
+hd-bet_params/
+.DS_Store

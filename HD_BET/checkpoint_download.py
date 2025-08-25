@@ -1,11 +1,12 @@
 import os
 import zipfile
 from typing import Optional
-
 import requests
-from batchgenerators.utilities.file_and_folder_operations import isfile, join, maybe_mkdir_p
 from tqdm import tqdm
+
+
 from HD_BET.paths import folder_with_parameter_files, ZENODO_DOWNLOAD_URL
+from .utils import maybe_mkdir_p, isfile, join
 
 
 def install_model_from_zip_file(zip_file: str):

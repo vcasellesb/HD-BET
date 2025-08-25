@@ -1,7 +1,7 @@
 import os
 
 # please refer to the readme on where to get the parameters. Save them in this folder:
-folder_with_parameter_files = os.path.join(os.path.expanduser('~'), 'hd-bet_params', 'release_2.0.0')
+folder_with_parameter_files = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'hd-bet_params', 'release_2.0.0')
 
 # the link suggests 1.5 but I don't want to release this update as v1.5 because this will upset people who use hd-bet
 # and who don't expect breaking changes without a major version upgrade

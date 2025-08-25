@@ -3,14 +3,21 @@ from multiprocessing import Pool
 import sys
 import SimpleITK as sitk
 import torch
-from batchgenerators.utilities.file_and_folder_operations import nifti_files, join, maybe_mkdir_p, isdir
+import numpy as np
+
+
 sys.stdout = open(os.devnull, 'w')
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 sys.stdout = sys.__stdout__
 from HD_BET.paths import folder_with_parameter_files
+from .utils import nifti_files, maybe_mkdir_p, isdir, join
 
 
-def apply_bet(img, bet, out_fname):
+def apply_bet(
+    img: str,
+    bet: str,
+    out_fname: str
+):
     img_itk = sitk.ReadImage(img)
     img_npy = sitk.GetArrayFromImage(img_itk)
     img_bet = sitk.GetArrayFromImage(sitk.ReadImage(bet))
@@ -21,9 +28,9 @@ def apply_bet(img, bet, out_fname):
 
 
 def get_hdbet_predictor(
-        use_tta: bool = False,
-        device: torch.device = torch.device('cuda'),
-        verbose: bool = False
+    use_tta: bool = False,
+    device: torch.device = torch.device('mps'),
+    verbose: bool = False
 ):
     os.environ['nnUNet_compile'] = 'F'
     predictor = nnUNetPredictor(
@@ -45,11 +52,12 @@ def get_hdbet_predictor(
 
 
 def hdbet_predict(
-        input_file_or_folder: str,
-        output_file_or_folder: str,
-        predictor: nnUNetPredictor,
-        keep_brain_mask: bool = False,
-        compute_brain_extracted_image: bool = True
+    input_file_or_folder: str,
+    output_file_or_folder: str,
+    predictor: nnUNetPredictor = None,
+    keep_brain_mask: bool = False,
+    compute_brain_extracted_image: bool = True,
+    predictor_kwargs: dict = None
 ):
     # find input file or files
     if os.path.isdir(input_file_or_folder):
@@ -64,6 +72,10 @@ def hdbet_predict(
         input_files = [input_file_or_folder]
         output_files = [join(os.path.curdir, output_file_or_folder)]
         brain_mask_files = [join(os.path.curdir, output_file_or_folder[:-7] + '_bet.nii.gz')]
+    
+    if predictor is None:
+        assert predictor_kwargs is not None
+        predictor = get_hdbet_predictor(**predictor_kwargs)
 
     # we first just predict the brain masks using the standard nnU-Net inference
     predictor.predict_from_files(
@@ -97,3 +109,27 @@ def hdbet_predict(
 
     if not keep_brain_mask:
         [os.remove(i) for i in brain_mask_files]
+
+
+def hdbet_predict_return_array(
+    image,
+    predictor = None,
+    predictor_kwargs: dict = None
+) -> np.ndarray:
+
+    if predictor is None:
+        assert predictor_kwargs is not None
+        predictor = get_hdbet_predictor(**predictor_kwargs)
+
+    brainseg = predictor.predict_from_files(
+        [[image]],
+        None,
+        save_probabilities=False,
+        overwrite=True,
+        num_processes_preprocessing=4,
+        num_processes_segmentation_export=8,
+        folder_with_segs_from_prev_stage=None,
+        num_parts=1,
+        part_id=0
+    )
+    return brainseg[0]
