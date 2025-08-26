@@ -114,7 +114,9 @@ def hdbet_predict(
 def hdbet_predict_return_array(
     image,
     predictor = None,
-    predictor_kwargs: dict = None
+    predictor_kwargs: dict = None,
+    num_proceses_preprocessing: int = 3,
+    num_processes_segmentation_export: int = 3
 ) -> np.ndarray:
 
     if predictor is None:
@@ -126,8 +128,8 @@ def hdbet_predict_return_array(
         None,
         save_probabilities=False,
         overwrite=True,
-        num_processes_preprocessing=4,
-        num_processes_segmentation_export=8,
+        num_processes_preprocessing=num_proceses_preprocessing,
+        num_processes_segmentation_export=num_processes_segmentation_export,
         folder_with_segs_from_prev_stage=None,
         num_parts=1,
         part_id=0
