@@ -1,4 +1,4 @@
-import os.path
+import os
 from multiprocessing import Pool
 import sys
 import SimpleITK as sitk
@@ -10,7 +10,16 @@ sys.stdout = open(os.devnull, 'w')
 from nnunetv2.inference.predict_from_raw_data import nnUNetPredictor
 sys.stdout = sys.__stdout__
 from HD_BET.paths import folder_with_parameter_files
-from .utils import nifti_files, maybe_mkdir_p, isdir, join
+
+from .utils import (
+    nifti_files,
+    maybe_mkdir_p,
+    isdir,
+    join,
+    get_default_device,
+    basename,
+    dirname
+)
 
 
 def apply_bet(
@@ -29,7 +38,7 @@ def apply_bet(
 
 def get_hdbet_predictor(
     use_tta: bool = False,
-    device: torch.device = torch.device('mps'),
+    device: torch.device = torch.device(get_default_device()),
     verbose: bool = False
 ):
     os.environ['nnUNet_compile'] = 'F'
@@ -46,7 +55,7 @@ def get_hdbet_predictor(
         folder_with_parameter_files,
         'all'
     )
-    if device == torch.device('cpu'):
+    if device.type == 'cpu':
         torch.set_num_threads(os.cpu_count())
     return predictor
 
@@ -60,11 +69,11 @@ def hdbet_predict(
     predictor_kwargs: dict = None
 ):
     # find input file or files
-    if os.path.isdir(input_file_or_folder):
+    if isdir(input_file_or_folder):
         input_files = nifti_files(input_file_or_folder)
         # output_file_or_folder must be folder in this case
         maybe_mkdir_p(output_file_or_folder)
-        output_files = [join(output_file_or_folder, os.path.basename(i)) for i in input_files]
+        output_files = [join(output_file_or_folder, basename(i)) for i in input_files]
         brain_mask_files = [i[:-7] + '_bet.nii.gz' for i in output_files]
     else:
         assert not isdir(output_file_or_folder), 'If input is a single file then output must be a filename, not a directory'
@@ -72,7 +81,7 @@ def hdbet_predict(
         input_files = [input_file_or_folder]
         output_files = [join(os.path.curdir, output_file_or_folder)]
         brain_mask_files = [join(os.path.curdir, output_file_or_folder[:-7] + '_bet.nii.gz')]
-    
+
     if predictor is None:
         assert predictor_kwargs is not None
         predictor = get_hdbet_predictor(**predictor_kwargs)
@@ -90,9 +99,9 @@ def hdbet_predict(
         part_id=0
     )
     # remove unnecessary json files
-    os.remove(join(os.path.dirname(brain_mask_files[0]), 'dataset.json'))
-    os.remove(join(os.path.dirname(brain_mask_files[0]), 'plans.json'))
-    os.remove(join(os.path.dirname(brain_mask_files[0]), 'predict_from_raw_data_args.json'))
+    os.remove(join(dirname(brain_mask_files[0]), 'dataset.json'))
+    os.remove(join(dirname(brain_mask_files[0]), 'plans.json'))
+    os.remove(join(dirname(brain_mask_files[0]), 'predict_from_raw_data_args.json'))
 
     if compute_brain_extracted_image:
         # now brain extract the images
@@ -108,11 +117,12 @@ def hdbet_predict(
             [i.get() for i in res]
 
     if not keep_brain_mask:
-        [os.remove(i) for i in brain_mask_files]
+        for i in brain_mask_files:
+            os.remove(i)
 
 
 def hdbet_predict_return_array(
-    image,
+    image: str,
     predictor = None,
     predictor_kwargs: dict = None,
     num_proceses_preprocessing: int = 3,
