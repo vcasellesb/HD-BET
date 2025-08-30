@@ -37,19 +37,23 @@ def apply_bet(
 
 
 def get_hdbet_predictor(
+    tile_step_size: float = 0.5,
+    use_gaussian: bool = True,
     use_tta: bool = False,
     device: torch.device = torch.device(get_default_device()),
+    allow_tqdm: bool = True,
     verbose: bool = False
 ):
     os.environ['nnUNet_compile'] = 'F'
     predictor = nnUNetPredictor(
-        tile_step_size=0.5,
-        use_gaussian=True,
+        tile_step_size=tile_step_size,
+        use_gaussian=use_gaussian,
         use_mirroring=use_tta,
         perform_everything_on_device=True,
         device=device,
         verbose=verbose,
-        verbose_preprocessing=verbose
+        verbose_preprocessing=verbose,
+        allow_tqdm=allow_tqdm
     )
     predictor.initialize_from_trained_model_folder(
         folder_with_parameter_files,
@@ -61,26 +65,31 @@ def get_hdbet_predictor(
 
 
 def hdbet_predict(
-    input_file_or_folder: str,
-    output_file_or_folder: str,
+    input_files_or_folder: str | list[str],
+    output_files_or_folder: str | list[str],
     predictor: nnUNetPredictor = None,
-    keep_brain_mask: bool = False,
-    compute_brain_extracted_image: bool = True,
-    predictor_kwargs: dict = None
+    keep_brain_mask: bool = True,
+    compute_brain_extracted_image: bool = False,
+    predictor_kwargs: dict = None,
+    num_processes_preprocessing: int = 3,
+    num_processes_segmentation_export: int = 3
 ):
     # find input file or files
-    if isdir(input_file_or_folder):
-        input_files = nifti_files(input_file_or_folder)
+    if isinstance(input_files_or_folder, list):
+        input_files = input_files_or_folder
+        brain_mask_files = output_files_or_folder
+    elif isdir(input_files_or_folder):
+        input_files = nifti_files(input_files_or_folder)
         # output_file_or_folder must be folder in this case
-        maybe_mkdir_p(output_file_or_folder)
-        output_files = [join(output_file_or_folder, basename(i)) for i in input_files]
+        maybe_mkdir_p(output_files_or_folder)
+        output_files = [join(output_files_or_folder, basename(i)) for i in input_files]
         brain_mask_files = [i[:-7] + '_bet.nii.gz' for i in output_files]
     else:
-        assert not isdir(output_file_or_folder), 'If input is a single file then output must be a filename, not a directory'
-        assert output_file_or_folder.endswith('.nii.gz'), 'Output file must end with .nii.gz'
-        input_files = [input_file_or_folder]
-        output_files = [join(os.path.curdir, output_file_or_folder)]
-        brain_mask_files = [join(os.path.curdir, output_file_or_folder[:-7] + '_bet.nii.gz')]
+        assert not isdir(output_files_or_folder), 'If input is a single file then output must be a filename, not a directory'
+        assert output_files_or_folder.endswith('.nii.gz'), 'Output file must end with .nii.gz'
+        input_files = [input_files_or_folder]
+        output_files = [join(os.path.curdir, output_files_or_folder)]
+        brain_mask_files = [join(os.path.curdir, output_files_or_folder[:-7] + '_bet.nii.gz')]
 
     if predictor is None:
         assert predictor_kwargs is not None
@@ -92,8 +101,8 @@ def hdbet_predict(
         brain_mask_files,
         save_probabilities=False,
         overwrite=True,
-        num_processes_preprocessing=4,
-        num_processes_segmentation_export=8,
+        num_processes_preprocessing=num_processes_preprocessing,
+        num_processes_segmentation_export=num_processes_segmentation_export,
         folder_with_segs_from_prev_stage=None,
         num_parts=1,
         part_id=0

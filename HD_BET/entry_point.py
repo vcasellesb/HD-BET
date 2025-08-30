@@ -50,7 +50,7 @@ def main():
         verbose=args.verbose
     )
 
-    hdbet_predict(args.input,args.output, predictor, keep_brain_mask=args.save_bet_mask,
+    hdbet_predict(args.input, args.output, predictor, keep_brain_mask=args.save_bet_mask,
                   compute_brain_extracted_image=not args.no_bet_image)
 
 
