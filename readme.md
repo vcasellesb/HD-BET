@@ -2,7 +2,7 @@
 
 This repository provides easy to use access to our HD-BET
 brain extraction tool. HD-BET is the result of a joint project between the
-Department of Neuroradiology at the Heidelberg University Hospital, the Divison 
+Department of Neuroradiology at the Heidelberg University Hospital, the Divison
 for Computational Radiology & Clinical AI, University Hospital Bonn and the
 Division of Medical Image Computing at the German Cancer Research Center (DKFZ).
 
@@ -39,7 +39,7 @@ significant advantages:
 
 ## Installation Instructions
 
-Note that you need to have a python3 installation for HD-BET to work. HD-BET was 
+Note that you need to have a python3 installation for HD-BET to work. HD-BET was
 extensively tested in Linux but should work on Windows and Mac as well!
 
 We recommend installing HD-BET in a virtual environment.
@@ -76,8 +76,8 @@ hd-bet -i INPUT_FILENAME -o OUTPUT_FILENAME
 INPUT_FILENAME must be a nifti (.nii.gz) file containing 3D MRI image data. 4D
 image sequences are not supported (however can be split upfront into the
 individual temporal volumes using fslsplit<sup>1</sup>). INPUT_FILENAME can be
-any MRI sequence. Pre-, postcontrast T1-w, T2-w and FLAIR were used for training 
-and should work best. Other sequences will most likely work as well. Input 
+any MRI sequence. Pre-, postcontrast T1-w, T2-w and FLAIR were used for training
+and should work best. Other sequences will most likely work as well. Input
 images must match the orientation of standard MNI152
 template! Use fslreorient2std <sup>2</sup> upfront to ensure that this is the
 case.
@@ -125,8 +125,8 @@ hd-bet -h
 ```
 
 ## FAQ
-1. **Will you provide the training code?** It's basically 
-[nnU-Net](https://github.com/MIC-DKFZ/nnUNet) since HD-BET v2. We use 
+1. **Will you provide the training code?** It's basically
+[nnU-Net](https://github.com/MIC-DKFZ/nnUNet) since HD-BET v2. We use
    nnUNetTrainerDA5 with minor (not yet published) modifications.
 2. **What run time can I expect on CPU/GPU?** This depends on your MRI image
    size. Typical run times (preprocessing and resampling
