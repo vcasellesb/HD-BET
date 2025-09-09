@@ -154,3 +154,44 @@ def hdbet_predict_return_array(
         part_id=0
     )
     return brainseg[0]
+
+
+def hdbet_predict_sequential(
+    input_files_or_folder: str | list[str],
+    output_files_or_folder: str | list[str],
+    predictor: nnUNetPredictor = None,
+    keep_brain_mask: bool = True,
+    compute_brain_extracted_image: bool = False,
+    predictor_kwargs: dict = None,
+    num_processes_preprocessing: int = 3,
+    num_processes_segmentation_export: int = 3
+):
+    # find input file or files
+    if isinstance(input_files_or_folder, list):
+        input_files = input_files_or_folder
+        brain_mask_files = output_files_or_folder
+    elif isdir(input_files_or_folder):
+        input_files = nifti_files(input_files_or_folder)
+        # output_file_or_folder must be folder in this case
+        maybe_mkdir_p(output_files_or_folder)
+        output_files = [join(output_files_or_folder, basename(i)) for i in input_files]
+        brain_mask_files = [i[:-7] + '_bet.nii.gz' for i in output_files]
+    else:
+        assert not isdir(output_files_or_folder), 'If input is a single file then output must be a filename, not a directory'
+        assert output_files_or_folder.endswith('.nii.gz'), 'Output file must end with .nii.gz'
+        input_files = [input_files_or_folder]
+        output_files = [join(os.path.curdir, output_files_or_folder)]
+        brain_mask_files = [join(os.path.curdir, output_files_or_folder[:-7] + '_bet.nii.gz')]
+
+    if predictor is None:
+        assert predictor_kwargs is not None
+        predictor = get_hdbet_predictor(**predictor_kwargs)
+
+    # we first just predict the brain masks using the standard nnU-Net inference
+    predictor.predict_from_files_sequential(
+        [[i] for i in input_files],
+        brain_mask_files,
+        save_probabilities=False,
+        overwrite=True,
+        folder_with_segs_from_prev_stage=None,
+    )
